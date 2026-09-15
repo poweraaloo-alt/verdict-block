@@ -23,6 +23,7 @@ type Conversation = {
 export default function App() {
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [evidence, setEvidence] = useState<Evidence[]>([]);
+  const [showEvidenceBoard, setShowEvidenceBoard] = useState(false);
 
   useEffect(() => {
     const openChat = (event: Event) => {
@@ -106,19 +107,72 @@ export default function App() {
     }
   };
 
+  const openTrial = () => {
+    const judge = characters.find((character) => character.id === "orion");
+
+    if (!judge) return;
+
+    setConversation({
+      npc: judge,
+      lines: [
+        {
+          speaker: judge.name,
+          text: "Three clues have been submitted. The preliminary trial may begin.",
+        },
+        {
+          speaker: judge.name,
+          text: "Review your evidence carefully. A verdict without proof is not justice.",
+        },
+      ],
+    });
+  };
+
   return (
     <main>
       <header>
         <h1>Verdict Block</h1>
         <p>Explore the facility. Speak with residents. Find the truth.</p>
         <section className="case-file">
-  <strong>Case: {caseTitle}</strong>
-  <span>{caseObjective}</span>
-  <span>Evidence: {evidence.length}/3</span>
-</section>
+          <strong>Case: {caseTitle}</strong>
+          <span>{caseObjective}</span>
+          <span>Evidence: {evidence.length}/3</span>
+
+          <div className="case-actions">
+            <button onClick={() => setShowEvidenceBoard((current) => !current)}>
+              {showEvidenceBoard ? "Hide evidence board" : "Open evidence board"}
+            </button>
+
+            {evidence.length >= 3 ? (
+              <button onClick={openTrial}>Present evidence to Judge Orion</button>
+            ) : (
+              <span className="locked-trial">
+                Trial locked: collect {3 - evidence.length} more clue(s)
+              </span>
+            )}
+          </div>
+        </section>
       </header>
 
       <div id="game-root" />
+
+      {showEvidenceBoard && (
+        <section className="evidence-board">
+          <h2>Evidence Board</h2>
+
+          {evidence.length === 0 ? (
+            <p>No evidence collected yet.</p>
+          ) : (
+            <ul>
+              {evidence.map((item) => (
+                <li key={item.id}>
+                  <strong>{item.title}</strong>
+                  <span>{item.description}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
 
       {conversation && (
         <section className="dialogue-panel">
@@ -142,8 +196,8 @@ export default function App() {
 
           <div className="dialogue-actions">
             <button onClick={collectEvidence}>
-  Ask about suspicious activity
-</button>
+              Ask about suspicious activity
+            </button>
             <button
               onClick={() =>
                 askQuestion(

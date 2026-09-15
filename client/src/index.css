@@ -112,3 +112,54 @@ canvas {
 .case-file span {
   color: #c9c9e8;
 }
+
+.case-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.case-actions button {
+  padding: 7px 10px;
+  cursor: pointer;
+}
+
+.locked-trial {
+  color: #f4a261;
+}
+
+.evidence-board {
+  width: min(960px, 100%);
+  margin: 0 auto 24px;
+  padding: 18px;
+  text-align: left;
+  background: #171725;
+  border: 1px solid #7777a5;
+  border-radius: 10px;
+}
+
+.evidence-board h2 {
+  margin-top: 0;
+}
+
+.evidence-board ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.evidence-board li {
+  padding: 12px;
+  background: #24243a;
+  border-left: 4px solid #e76f51;
+}
+
+.evidence-board li span {
+  display: block;
+  margin-top: 6px;
+  color: #c9c9e8;
+}
