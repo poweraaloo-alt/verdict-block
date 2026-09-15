@@ -95,3 +95,20 @@ canvas {
   border-radius: 6px;
   cursor: pointer;
 }
+
+.case-file {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  width: min(960px, 100%);
+  margin: 18px auto;
+  padding: 12px;
+  background: #202035;
+  border-left: 4px solid #e76f51;
+  color: #e8e8fa;
+}
+
+.case-file span {
+  color: #c9c9e8;
+}

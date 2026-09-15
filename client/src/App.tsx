@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import Phaser from "phaser";
 import { characters, type Character } from "./data/characters";
+import {
+  caseObjective,
+  caseTitle,
+  evidenceByNpcId,
+  type Evidence,
+} from "./data/case";
 import { MainScene } from "./game/MainScene";
 import "./index.css";
 
@@ -16,6 +22,7 @@ type Conversation = {
 
 export default function App() {
   const [conversation, setConversation] = useState<Conversation | null>(null);
+  const [evidence, setEvidence] = useState<Evidence[]>([]);
 
   useEffect(() => {
     const openChat = (event: Event) => {
@@ -68,11 +75,47 @@ export default function App() {
     });
   };
 
+  const collectEvidence = () => {
+    if (!conversation) return;
+
+    const newEvidence = evidenceByNpcId[conversation.npc.id];
+
+    if (!newEvidence) return;
+
+    const isAlreadyCollected = evidence.some(
+      (item) => item.id === newEvidence.id,
+    );
+
+    if (!isAlreadyCollected) {
+      setEvidence((current) => [...current, newEvidence]);
+
+      setConversation((current) => {
+        if (!current) return null;
+
+        return {
+          ...current,
+          lines: [
+            ...current.lines,
+            {
+              speaker: "System",
+              text: `Evidence collected: ${newEvidence.title}`,
+            },
+          ],
+        };
+      });
+    }
+  };
+
   return (
     <main>
       <header>
         <h1>Verdict Block</h1>
         <p>Explore the facility. Speak with residents. Find the truth.</p>
+        <section className="case-file">
+  <strong>Case: {caseTitle}</strong>
+  <span>{caseObjective}</span>
+  <span>Evidence: {evidence.length}/3</span>
+</section>
       </header>
 
       <div id="game-root" />
@@ -98,6 +141,9 @@ export default function App() {
           </div>
 
           <div className="dialogue-actions">
+            <button onClick={collectEvidence}>
+  Ask about suspicious activity
+</button>
             <button
               onClick={() =>
                 askQuestion(
