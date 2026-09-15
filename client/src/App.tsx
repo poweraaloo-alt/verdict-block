@@ -1,18 +1,38 @@
 import { useEffect, useState } from "react";
 import Phaser from "phaser";
+import { characters, type Character } from "./data/characters";
 import { MainScene } from "./game/MainScene";
 import "./index.css";
 
+type ChatLine = {
+  speaker: string;
+  text: string;
+};
+
+type Conversation = {
+  npc: Character;
+  lines: ChatLine[];
+};
+
 export default function App() {
-  const [talkingTo, setTalkingTo] = useState<string | null>(null);
+  const [conversation, setConversation] = useState<Conversation | null>(null);
 
   useEffect(() => {
     const openChat = (event: Event) => {
       const npcEvent = event as CustomEvent<{ name: string }>;
-      setTalkingTo(npcEvent.detail.name);
+      const npc = characters.find(
+        (character) => character.name === npcEvent.detail.name,
+      );
+
+      if (!npc) return;
+
+      setConversation({
+        npc,
+        lines: [{ speaker: npc.name, text: npc.greeting }],
+      });
     };
 
-    const closeChat = () => setTalkingTo(null);
+    const closeChat = () => setConversation(null);
 
     window.addEventListener("npc-chat-open", openChat);
     window.addEventListener("npc-chat-close", closeChat);
@@ -33,6 +53,21 @@ export default function App() {
     };
   }, []);
 
+  const askQuestion = (question: string, reply: string) => {
+    setConversation((current) => {
+      if (!current) return null;
+
+      return {
+        ...current,
+        lines: [
+          ...current.lines,
+          { speaker: "You", text: question },
+          { speaker: current.npc.name, text: reply },
+        ],
+      };
+    });
+  };
+
   return (
     <main>
       <header>
@@ -42,11 +77,51 @@ export default function App() {
 
       <div id="game-root" />
 
-      {talkingTo && (
+      {conversation && (
         <section className="dialogue-panel">
-          <h2>{talkingTo}</h2>
-          <p>This is a temporary dialogue window. AI conversations come next.</p>
-          <button onClick={() => setTalkingTo(null)}>Close</button>
+          <div className="npc-summary">
+            <div>
+              <h2>{conversation.npc.name}</h2>
+              <p>
+                {conversation.npc.role} · {conversation.npc.mood}
+              </p>
+            </div>
+            <span>Trust: {conversation.npc.trust}/100</span>
+          </div>
+
+          <div className="chat-lines">
+            {conversation.lines.map((line, index) => (
+              <p key={`${line.speaker}-${index}`}>
+                <strong>{line.speaker}:</strong> {line.text}
+              </p>
+            ))}
+          </div>
+
+          <div className="dialogue-actions">
+            <button
+              onClick={() =>
+                askQuestion(
+                  "What do you know about this facility?",
+                  conversation.npc.facilityReply,
+                )
+              }
+            >
+              Ask about the facility
+            </button>
+
+            <button
+              onClick={() =>
+                askQuestion(
+                  "Where were you earlier?",
+                  conversation.npc.alibiReply,
+                )
+              }
+            >
+              Ask for their alibi
+            </button>
+
+            <button onClick={() => setConversation(null)}>End conversation</button>
+          </div>
         </section>
       )}
     </main>
