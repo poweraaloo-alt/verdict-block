@@ -1,13 +1,19 @@
 import Phaser from "phaser";
 import { characters, type Character } from "../data/characters";
 
+type NpcActor = {
+  character: Character;
+  container: Phaser.GameObjects.Container;
+};
+
 export class MainScene extends Phaser.Scene {
   private player!: Phaser.GameObjects.Rectangle;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private interactKey!: Phaser.Input.Keyboard.Key;
   private escapeKey!: Phaser.Input.Keyboard.Key;
   private prompt!: Phaser.GameObjects.Text;
-  private nearbyNpc: Character | null = null;
+  private nearbyNpc: NpcActor | null = null;
+  private npcActors: NpcActor[] = [];
 
   constructor() {
     super("MainScene");
@@ -22,12 +28,21 @@ export class MainScene extends Phaser.Scene {
       color: "#ffffff",
     });
 
-    for (const npc of characters) {
-      this.add.circle(npc.x, npc.y, 22, npc.color);
-      this.add.text(npc.x - 35, npc.y + 30, npc.name, {
+    for (const character of characters) {
+      const body = this.add.circle(0, 0, 22, character.color);
+      const label = this.add.text(-42, 30, character.name, {
         fontSize: "14px",
         color: "#ffffff",
       });
+
+      const container = this.add.container(character.x, character.y, [
+        body,
+        label,
+      ]);
+
+      const npcActor = { character, container };
+      this.npcActors.push(npcActor);
+      this.moveNpc(npcActor, 1);
     }
 
     this.prompt = this.add.text(0, 0, "", {
@@ -62,13 +77,10 @@ export class MainScene extends Phaser.Scene {
 
     this.findNearbyNpc();
 
-    if (
-      this.nearbyNpc &&
-      Phaser.Input.Keyboard.JustDown(this.interactKey)
-    ) {
+    if (this.nearbyNpc && Phaser.Input.Keyboard.JustDown(this.interactKey)) {
       window.dispatchEvent(
         new CustomEvent("npc-chat-open", {
-          detail: { name: this.nearbyNpc.name },
+          detail: { name: this.nearbyNpc.character.name },
         }),
       );
     }
@@ -78,20 +90,37 @@ export class MainScene extends Phaser.Scene {
     }
   }
 
+  private moveNpc(npc: NpcActor, routeIndex: number) {
+    const destination = npc.character.route[routeIndex];
+
+    this.tweens.add({
+      targets: npc.container,
+      x: destination.x,
+      y: destination.y,
+      duration: 5000,
+      ease: "Linear",
+      hold: 1000,
+      onComplete: () => {
+        const nextIndex = (routeIndex + 1) % npc.character.route.length;
+        this.moveNpc(npc, nextIndex);
+      },
+    });
+  }
+
   private findNearbyNpc() {
     this.nearbyNpc = null;
 
-    for (const npc of characters) {
+    for (const npc of this.npcActors) {
       const distance = Phaser.Math.Distance.Between(
         this.player.x,
         this.player.y,
-        npc.x,
-        npc.y,
+        npc.container.x,
+        npc.container.y,
       );
 
       if (distance < 65) {
         this.nearbyNpc = npc;
-        this.prompt.setText(`Press E to talk to ${npc.name}`);
+        this.prompt.setText(`Press E to talk to ${npc.character.name}`);
         this.prompt.setPosition(this.player.x - 85, this.player.y - 55);
         this.prompt.setVisible(true);
         return;
