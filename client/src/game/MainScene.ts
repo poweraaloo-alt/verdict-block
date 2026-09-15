@@ -14,6 +14,18 @@ export class MainScene extends Phaser.Scene {
   private prompt!: Phaser.GameObjects.Text;
   private nearbyNpc: NpcActor | null = null;
   private npcActors: NpcActor[] = [];
+  private onNpcEliminated = (event: Event) => {
+    const npcEvent = event as CustomEvent<{ id: string }>;
+    const npc = this.npcActors.find(
+      (actor) => actor.character.id === npcEvent.detail.id,
+    );
+
+    if (!npc) return;
+
+    this.tweens.killTweensOf(npc.container);
+    npc.container.destroy();
+    this.npcActors = this.npcActors.filter((actor) => actor !== npc);
+  };
 
   constructor() {
     super("MainScene");
@@ -60,6 +72,11 @@ export class MainScene extends Phaser.Scene {
     this.escapeKey = this.input.keyboard!.addKey(
       Phaser.Input.Keyboard.KeyCodes.ESC,
     );
+
+    window.addEventListener("npc-eliminated", this.onNpcEliminated);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      window.removeEventListener("npc-eliminated", this.onNpcEliminated);
+    });
   }
 
   update(_: number, delta: number) {
@@ -91,6 +108,8 @@ export class MainScene extends Phaser.Scene {
   }
 
   private moveNpc(npc: NpcActor, routeIndex: number) {
+    if (!npc.container.active || !this.npcActors.includes(npc)) return;
+
     const destination = npc.character.route[routeIndex];
 
     this.tweens.add({
@@ -101,6 +120,8 @@ export class MainScene extends Phaser.Scene {
       ease: "Linear",
       hold: 1000,
       onComplete: () => {
+        if (!npc.container.active || !this.npcActors.includes(npc)) return;
+
         const nextIndex = (routeIndex + 1) % npc.character.route.length;
         this.moveNpc(npc, nextIndex);
       },

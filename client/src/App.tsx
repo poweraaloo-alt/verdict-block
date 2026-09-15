@@ -1,12 +1,8 @@
 import { useEffect, useState } from "react";
 import Phaser from "phaser";
 import { characters, type Character } from "./data/characters";
-import {
-  caseObjective,
-  caseTitle,
-  evidenceByNpcId,
-  type Evidence,
-} from "./data/case";
+import { createInitialSocialGraph, type SocialGraph } from "./data/social";
+import { TrialPanel } from "./components/TrialPanel";
 import { MainScene } from "./game/MainScene";
 import "./index.css";
 
@@ -20,10 +16,25 @@ type Conversation = {
   lines: ChatLine[];
 };
 
+const DAY_DURATION_SECONDS = 90;
+
 export default function App() {
   const [conversation, setConversation] = useState<Conversation | null>(null);
-  const [evidence, setEvidence] = useState<Evidence[]>([]);
-  const [showEvidenceBoard, setShowEvidenceBoard] = useState(false);
+  const [isTrialOpen, setIsTrialOpen] = useState(false);
+  const [trialDefendantId, setTrialDefendantId] = useState<string | null>(null);
+  const [socialGraph, setSocialGraph] = useState<SocialGraph>(createInitialSocialGraph);
+  const [survivors, setSurvivors] = useState([
+    "player",
+    "asha",
+    "kabir",
+    "meera",
+    "nikhil",
+  ]);
+  const [lastEliminated, setLastEliminated] = useState<string | null>(null);
+  const [day, setDay] = useState(1);
+  const [secondsUntilTrial, setSecondsUntilTrial] = useState(
+    DAY_DURATION_SECONDS,
+  );
 
   useEffect(() => {
     const openChat = (event: Event) => {
@@ -61,6 +72,28 @@ export default function App() {
     };
   }, []);
 
+  const isPlayerEliminated = !survivors.includes("player");
+  const gameEnded = isPlayerEliminated || survivors.length <= 1;
+
+  useEffect(() => {
+    if (isTrialOpen || gameEnded) return;
+
+    const timer = window.setInterval(() => {
+      setSecondsUntilTrial((current) => Math.max(0, current - 1));
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [gameEnded, isTrialOpen]);
+
+  useEffect(() => {
+    if (secondsUntilTrial !== 0 || isTrialOpen || gameEnded) return;
+
+    const defendant = survivors[Math.floor(Math.random() * survivors.length)];
+    setTrialDefendantId(defendant);
+    setConversation(null);
+    setIsTrialOpen(true);
+  }, [gameEnded, isTrialOpen, secondsUntilTrial, survivors]);
+
   const askQuestion = (question: string, reply: string) => {
     setConversation((current) => {
       if (!current) return null;
@@ -76,77 +109,97 @@ export default function App() {
     });
   };
 
-  const collectEvidence = () => {
-    if (!conversation) return;
+  const continueAfterTrial = () => {
+    setIsTrialOpen(false);
+    setTrialDefendantId(null);
 
-    const newEvidence = evidenceByNpcId[conversation.npc.id];
+    if (gameEnded) return;
 
-    if (!newEvidence) return;
+    setDay((current) => current + 1);
+    setSecondsUntilTrial(DAY_DURATION_SECONDS);
+  };
 
-    const isAlreadyCollected = evidence.some(
-      (item) => item.id === newEvidence.id,
+  const handleElimination = (participantId: string) => {
+    setSurvivors((current) =>
+      current.filter((survivorId) => survivorId !== participantId),
     );
 
-    if (!isAlreadyCollected) {
-      setEvidence((current) => [...current, newEvidence]);
+    const participant =
+      participantId === "player"
+        ? { name: "You" }
+        : characters.find((character) => character.id === participantId);
 
-      setConversation((current) => {
-        if (!current) return null;
+    setLastEliminated(participant?.name ?? "Unknown participant");
 
-        return {
-          ...current,
-          lines: [
-            ...current.lines,
-            {
-              speaker: "System",
-              text: `Evidence collected: ${newEvidence.title}`,
-            },
-          ],
-        };
-      });
+    if (participantId !== "player") {
+      window.dispatchEvent(
+        new CustomEvent("npc-eliminated", { detail: { id: participantId } }),
+      );
     }
   };
 
-  const openTrial = () => {
-    const judge = characters.find((character) => character.id === "orion");
+  const cooperateWith = (npcId: string) => {
+    setSocialGraph((current) => {
+      const playerRelationship = current.player[npcId];
+      const npcRelationship = current[npcId]?.player;
 
-    if (!judge) return;
+      if (!playerRelationship || !npcRelationship) return current;
 
-    setConversation({
-      npc: judge,
-      lines: [
-        {
-          speaker: judge.name,
-          text: "Three clues have been submitted. The preliminary trial may begin.",
+      return {
+        ...current,
+        player: {
+          ...current.player,
+          [npcId]: {
+            ...playerRelationship,
+            trust: Math.min(100, playerRelationship.trust + 8),
+            reliance: Math.min(100, playerRelationship.reliance + 4),
+          },
         },
-        {
-          speaker: judge.name,
-          text: "Review your evidence carefully. A verdict without proof is not justice.",
+        [npcId]: {
+          ...current[npcId],
+          player: {
+            ...npcRelationship,
+            trust: Math.min(100, npcRelationship.trust + 6),
+            reliance: Math.min(100, npcRelationship.reliance + 3),
+          },
         },
-      ],
+      };
     });
   };
+
+  const finalSurvivorId = survivors[0];
+  const finalSurvivorName =
+    finalSurvivorId === "player"
+      ? "You"
+      : characters.find((character) => character.id === finalSurvivorId)?.name;
+  const currentRelationship = conversation
+    ? socialGraph.player[conversation.npc.id]
+    : null;
 
   return (
     <main>
       <header>
         <h1>Verdict Block</h1>
-        <p>Explore the facility. Speak with residents. Find the truth.</p>
+        <p>Survive the facility. Trust carefully. Morning trials are inevitable.</p>
         <section className="case-file">
-          <strong>Case: {caseTitle}</strong>
-          <span>{caseObjective}</span>
-          <span>Evidence: {evidence.length}/3</span>
+          <strong>Survival Protocol</strong>
+          <span>Build relationships before the morning trial begins.</span>
+          <span>Survivors: {survivors.length}/5</span>
+          <span>
+            Day {day}, morning trial in {Math.floor(secondsUntilTrial / 60)}:
+            {String(secondsUntilTrial % 60).padStart(2, "0")}
+          </span>
 
           <div className="case-actions">
-            <button onClick={() => setShowEvidenceBoard((current) => !current)}>
-              {showEvidenceBoard ? "Hide evidence board" : "Open evidence board"}
-            </button>
-
-            {evidence.length >= 3 ? (
-              <button onClick={openTrial}>Present evidence to Judge Orion</button>
+            {gameEnded ? (
+              <span className="game-status">
+                {isPlayerEliminated
+                  ? "Survival run ended: you were eliminated."
+                  : `${finalSurvivorName} is the final survivor.`}
+              </span>
             ) : (
               <span className="locked-trial">
-                Trial locked: collect {3 - evidence.length} more clue(s)
+                Trial opens automatically when the morning timer ends.
               </span>
             )}
           </div>
@@ -155,23 +208,39 @@ export default function App() {
 
       <div id="game-root" />
 
-      {showEvidenceBoard && (
-        <section className="evidence-board">
-          <h2>Evidence Board</h2>
+      {lastEliminated && (
+        <p className="elimination-notice">
+          Elimination recorded: {lastEliminated}
+        </p>
+      )}
 
-          {evidence.length === 0 ? (
-            <p>No evidence collected yet.</p>
-          ) : (
-            <ul>
-              {evidence.map((item) => (
-                <li key={item.id}>
-                  <strong>{item.title}</strong>
-                  <span>{item.description}</span>
-                </li>
-              ))}
-            </ul>
-          )}
+      {gameEnded && (
+        <section className="end-game-overlay">
+          <div>
+            <p className="trial-kicker">Survival protocol complete</p>
+            <h2>
+              {isPlayerEliminated
+                ? "You have been eliminated."
+                : "You are the last survivor."}
+            </h2>
+            <p>
+              {isPlayerEliminated
+                ? `${survivors.length} participant(s) remain in the facility.`
+                : "You outlasted every other participant."}
+            </p>
+            <button onClick={() => window.location.reload()}>Restart scenario</button>
+          </div>
         </section>
+      )}
+
+      {isTrialOpen && trialDefendantId && (
+        <TrialPanel
+          defendantId={trialDefendantId}
+          survivors={survivors}
+          socialGraph={socialGraph}
+          onElimination={handleElimination}
+          onClose={continueAfterTrial}
+        />
       )}
 
       {conversation && (
@@ -183,7 +252,10 @@ export default function App() {
                 {conversation.npc.role} · {conversation.npc.mood}
               </p>
             </div>
-            <span>Trust: {conversation.npc.trust}/100</span>
+            <span>
+              Trust: {currentRelationship?.trust ?? 0}/100 · Reliance: {" "}
+              {currentRelationship?.reliance ?? 0}/100
+            </span>
           </div>
 
           <div className="chat-lines">
@@ -195,8 +267,8 @@ export default function App() {
           </div>
 
           <div className="dialogue-actions">
-            <button onClick={collectEvidence}>
-              Ask about suspicious activity
+            <button onClick={() => cooperateWith(conversation.npc.id)}>
+              Offer cooperation
             </button>
             <button
               onClick={() =>

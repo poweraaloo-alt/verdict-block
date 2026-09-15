@@ -104,9 +104,9 @@ export const characters: Character[] = [
     color: 0x457b9d,
     x: 480,
     y: 560,
-    greeting: "Welcome, participant. Your choices and evidence will determine the verdict.",
-    facilityReply: "The facility exists to establish the truth. Deception will be evaluated.",
-    alibiReply: "I do not provide alibis. I evaluate them.",
+    greeting: "Welcome, participant. Your continued existence will be evaluated.",
+    facilityReply: "The facility exists to reduce its population. Fairness is not a condition of the protocol.",
+    alibiReply: "I do not evaluate alibis. I evaluate whether a participant should remain.",
     route: [
       { x: 480, y: 560 },
       { x: 480, y: 510 },

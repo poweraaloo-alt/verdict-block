@@ -130,36 +130,176 @@ canvas {
   color: #f4a261;
 }
 
-.evidence-board {
+.elimination-notice {
   width: min(960px, 100%);
-  margin: 0 auto 24px;
-  padding: 18px;
-  text-align: left;
+  margin: -8px auto 20px;
+  padding: 10px;
+  color: #ffe8e8;
+  background: #6d2e2e;
+  border-radius: 6px;
+}
+
+.game-status {
+  color: #ffe8e8 !important;
+  font-weight: 700;
+}
+
+.end-game-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgb(6 6 14 / 92%);
+}
+
+.end-game-overlay > div {
+  width: min(460px, 100%);
+  padding: 28px;
+  background: #202035;
+  border: 2px solid #e76f51;
+  border-radius: 12px;
+}
+
+.end-game-overlay button {
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.defense-input {
+  display: grid;
+  gap: 8px;
+  margin: 18px 0;
+  font-weight: 700;
+}
+
+.defense-input textarea {
+  resize: vertical;
+  padding: 10px;
+  color: #f5f5ff;
   background: #171725;
   border: 1px solid #7777a5;
-  border-radius: 10px;
+  border-radius: 6px;
+  font: inherit;
 }
 
-.evidence-board h2 {
-  margin-top: 0;
+.judge-question {
+  color: #ffe66d;
+  font-size: 1.1rem;
+  font-style: italic;
 }
 
-.evidence-board ul {
+.npc-defense,
+.player-vote {
+  margin: 18px 0;
+  padding: 14px;
+  background: #171725;
+  border-radius: 8px;
+}
+
+.player-vote button {
+  margin-right: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.player-vote button.selected {
+  color: #fff;
+  background: #b64040;
+}
+
+.trial-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: 12px;
-  padding: 0;
-  list-style: none;
+  place-items: center;
+  padding: 24px;
+  background: rgb(6 6 14 / 88%);
 }
 
-.evidence-board li {
-  padding: 12px;
-  background: #24243a;
-  border-left: 4px solid #e76f51;
+.trial-panel {
+  width: min(720px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  padding: 28px;
+  text-align: left;
+  background: #202035;
+  border: 2px solid #e76f51;
+  border-radius: 12px;
 }
 
-.evidence-board li span {
+.trial-panel h2 {
+  margin-top: 4px;
+}
+
+.trial-kicker {
+  margin: 0;
+  color: #f4a261;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.suspect-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.suspect {
+  padding: 14px;
+  text-align: left;
+  color: #f5f5ff;
+  background: #171725;
+  border: 1px solid #7777a5;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.suspect span {
   display: block;
-  margin-top: 6px;
+  margin-top: 4px;
   color: #c9c9e8;
+}
+
+.suspect.selected {
+  border-color: #e76f51;
+  box-shadow: 0 0 0 2px #e76f51;
+}
+
+.trial-actions,
+.verdict {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.trial-actions button,
+.verdict button {
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.accuse-button {
+  color: #fff;
+  background: #b64040;
+}
+
+.verdict {
+  display: block;
+  padding: 14px;
+  background: #171725;
+  border-left: 4px solid #f4a261;
+}
+
+.verdict button {
+  display: block;
+  margin-top: 14px;
 }
